@@ -1,37 +1,14 @@
-from lark import Lark, Transformer, Token
-
-class SexprParser:
-    def __init__(self):
-
-        self.lark = Lark(r"""
-
-    start: atom | sexpr
-
-    sexpr: WS* "(" WS* (atom|sexpr) ((WS* (atom|sexpr))+)? WS* ")" WS*
-    atom: symbol | constant
-                    
-    true: "#t"
-    false: "#f"
-    boolean: true | false
-    integer: INT
-    float: FLOAT
-    constant: integer | float | boolean
-    symbol: WORD
-                    
-%import common.WS
-%import common.WORD
-%import common.INT
-%import common.FLOAT
-
-""", start="start")
-        
-    def parse(self, text):
-        return self.lark.parse(text)
-
+from lark import Transformer, Token
+from functools import reduce
 
 class Symbol:
     def __init__(self,sym: str):
         self._symbol = sym
+    
+    def __eq__(self, other):
+        if isinstance(other, Symbol):
+            return self._symbol == other._symbol
+        raise NotImplementedError
     
     def __repr__(self):
         return f"Symbol({self._symbol})"
@@ -40,20 +17,32 @@ class Constant:
     def __init__(self, cst):
         self._constant = cst
     
+    def __eq__(self, other):
+        if isinstance(other, Constant):
+            return self._constant == other._constant
+        raise NotImplementedError
+    
     def __repr__(self):
         return f"Constant({self._constant})"
 
-from functools import reduce
 class Sexpr:
     def __init__(self, l):
         self._list = l
     
+    def __eq__(self, other):
+        if isinstance(other, Sexpr):
+            if len(self._list) == len(other._list):
+                return all(map(lambda tup: tup[0] == tup[1],zip(self._list, other._list)))
+            else:
+                return False
+        raise NotImplementedError
+
     def __repr__(self):
         _strs = map(repr,self._list)
         _str = reduce(lambda x1, x2: x1 + " " + x2,_strs,"")
         return f"Sexpr({_str} )"
 
-class SexprTransformer(Transformer):
+class ASTTransform(Transformer):
     # Constants
     def float(self, l):
         fval = l[0]
@@ -77,17 +66,9 @@ class SexprTransformer(Transformer):
         return Constant(l[0])
     
     # rule skip
+    def boolean(self, l):
+        return l[0]
     def start(self, l):
         return l[0]
     def atom(self, l):
         return l[0]
-    
-parser = SexprParser()
-transformer = SexprTransformer()
-text = " ( define lst (list 5.0 1 a) ) "
-tree = parser.parse(text)
-from pprint import pprint
-pprint(tree)
-print("\n\n")
-transformed_tree = transformer.transform(tree)
-print(transformed_tree)

@@ -1,0 +1,18 @@
+start: atom | sexpr
+
+sexpr: WS* "(" WS* (atom|sexpr) ((WS* (atom|sexpr))+)? WS* ")" WS*
+atom: symbol | constant
+
+symbol: WORD
+constant: integer | float | boolean
+
+true: "#t"
+false: "#f"
+boolean: true | false
+integer: INT
+float: FLOAT
+
+%import common.WS
+%import common.WORD
+%import common.INT
+%import common.FLOAT
